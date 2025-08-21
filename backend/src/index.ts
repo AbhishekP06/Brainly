@@ -53,7 +53,8 @@ app.post("/api/v1/signin", async (req, res) => {
    const passwordMatch = await bcrypt.compare(password, user.password);
 
    if (passwordMatch) {
-      const token = jwt.sign({userId : user.id}, process.env.JWT_SCRECT as string);
+      const token = jwt.sign({userId : user.id}, process.env.JWT_SECRET as string);
+      console.log(token);
       res.status(200).json({
          message: "Login successfully",
          token: {token}
@@ -69,6 +70,8 @@ app.post("/api/v1/signin", async (req, res) => {
 
 app.post("/api/v1/content", auth, async(req, res) => {
    const { title, link, type }  = req.body;
+   //@ts-ignore
+   console.log(req.userId);
    try{
       const content = await Content.create({
          title,
@@ -80,7 +83,8 @@ app.post("/api/v1/content", auth, async(req, res) => {
       });
       
       res.status(201).json({
-         message: "Content added"
+         message: "Content added",
+         content: {content}
       })
    }
    catch(err){
@@ -138,12 +142,14 @@ app.delete("/api/v1/content", auth, async (req, res) => {
 
 app.post("/api/v1/brain/share", auth, async (req, res) => {
    const share = req.body.share;
-   try{
+   console.log(share);
+   const hash = generateRandomKey(15);
+   
       if(share){
          await Link.create({
             //@ts-ignore
             userId : req.userId,
-            hash : generateRandomKey(15)
+            hash : hash
          });
       }
       else{
@@ -151,26 +157,49 @@ app.post("/api/v1/brain/share", auth, async (req, res) => {
          //@ts-ignore
             userId: req.userId
          });
+         return res.status(201).json({
+            message: "Removed link"
+         })
       }
       res.status(201).json({
-         message: "Update shareable link"
+         message: "Update shareable link",
+         hash : {hash}
       })
 
-   }
-    catch(err){
-      res.status(500).json({
-         message: "Something went wrong",
-         error: {err}
-      })
-   }
+   
+   
 
 })
 
-app.get("/api/v1/brain/:shareLink", (req, res) => {
+app.get("/api/v1/brain/:shareLink", async (req, res) => {
 
+   const hash = req.params.shareLink;
+   const link = await Link.findOne({
+      hash
+   });
+   if(!link){
+      return res.status(400).json({
+         message: "Share not found"
+      })
+   }
+   const content = await Content.find({
+      userId: link.userId
+   }).populate("userId", "username")
+
+   // const user = await User.findOne({
+   //    userId: link.userId
+   // })
+
+   res.status(200).json({
+      content
+   })
 })
 
 
 app.listen(process.env.PORT, () => {
    console.log(`App listening on port ${process.env.PORT}`)
 })
+
+function generateRandomString(arg0: number): any | string {
+   throw new Error('Function not implemented.');
+}
