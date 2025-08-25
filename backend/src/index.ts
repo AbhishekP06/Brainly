@@ -8,9 +8,14 @@ import { auth } from './middleware/authMiddleware';
 import Content from './models/contentModel';
 import Link from './models/linkModel';
 import { generateRandomKey } from './util/utils';
+import cors from "cors";
+
+
 
 dotenv.config();
 const app = express();
+
+app.use(cors());
 
 app.use(express.json());
 connectDB();
